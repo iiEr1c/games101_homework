@@ -101,8 +101,14 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
         //Viewport transformation
         for (auto & vert : v)
         {
+            // ppt05's Canonical Cube to Screen
+            // Mviewport
             vert.x() = 0.5*width*(vert.x()+1.0);
             vert.y() = 0.5*height*(vert.y()+1.0);
+
+            // 我们之前的z轴是进行了翻转的,也就是最后乘了一个镜像矩阵
+            assert(vert.z() < 0.0f);
+            // 这里只是将z从[-1, 1]映射到[n, f], 并没有进行翻转
             vert.z() = vert.z() * f1 + f2;
         }
 
@@ -196,11 +202,11 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                 float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
                 z_interpolated *= w_reciprocal;
                 //assert(w_reciprocal > 0.0f);
-                //assert(z_interpolated < 0.0f);
-                if(-z_interpolated > depth_buf[get_index(i,j)]){//如果当前z值比像素z值小（这里是把z值换成正数比较的）
+                assert(z_interpolated < 0.0f);
+                if(z_interpolated > depth_buf[get_index(i,j)]){//如果当前z值比像素z值小（这里是把z值换成正数比较的）
                     // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
                     set_pixel({i,j,1},t.getColor());
-                    depth_buf[get_index(i,j)] = -z_interpolated;//设置像素颜色，修改像素当前深度
+                    depth_buf[get_index(i,j)] = z_interpolated;//设置像素颜色，修改像素当前深度
                 }
             }
         }
