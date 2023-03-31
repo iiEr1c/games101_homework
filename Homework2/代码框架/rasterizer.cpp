@@ -131,7 +131,7 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
     }
 }
 
-/*
+
 //Screen space rasterization
 void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     auto v = t.toVector4();
@@ -146,10 +146,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
         upBound = std::min(upBound, k.y());
 
         rightBound = std::max(rightBound, k.x());
-        rightBound = rightBound == int(rightBound) ? int(rightBound) - 1 : rightBound;
-
         buttonBound = std::max(buttonBound, k.y());
-        buttonBound = buttonBound == int(buttonBound) ? int(buttonBound) - 1 : buttonBound;
     }
 
     for (float i = leftBound; i <= rightBound; ++i) {
@@ -159,9 +156,9 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                 float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
                 float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
                 z_interpolated *= w_reciprocal;
-                if (-z_interpolated < depth_buf[get_index(i, j)]) {
+                if (z_interpolated > depth_buf[get_index(i, j)]) {
                     set_pixel({i, j, 1}, t.getColor()); // 更新颜色
-                    depth_buf[get_index(i, j)] = -z_interpolated;
+                    depth_buf[get_index(i, j)] = z_interpolated;
                 }
             }
         }
@@ -176,11 +173,8 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
 
     // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
 }
-*/
 
-
-
-
+/*
 void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     auto v = t.toVector4();
     float alpha, beta, gamma, lmin=INT_MAX, rmax=INT_MIN, tmax=INT_MIN, bmin=INT_MAX;
@@ -212,6 +206,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
         }
     }
 }
+*/
 
 void rst::rasterizer::set_model(const Eigen::Matrix4f& m)
 {
