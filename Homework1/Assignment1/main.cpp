@@ -88,23 +88,28 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
   float r = t * aspect_ratio;
 
   Eigen::Matrix4f trans;
-  trans << 1, 0, 0, 0,              //
-      0, 1, 0, 0,                   //
-      0, 0, 1, -(zNear + zFar) / 2, //
-      0, 0, 0, 1;                   //
+  // fix, 因为near和far我们看作距离, 所以他们的坐标是-near和-far
+  // 所以等于-1(-zNear + (-)(zFar)) / 2 = (zNear + zFar) / 2
+  trans << 1, 0, 0, 0,             //
+      0, 1, 0, 0,                  //
+      0, 0, 1, (zNear + zFar) / 2, //
+      0, 0, 0, 1;                  //
 
   Eigen::Matrix4f scale;
-  // 鉴于zNear > 0 && zFar > 0 && zNear < zFar, 在scale变换时要取abs
-  scale << 1 / r, 0, 0, 0,          //
-      0, 1 / t, 0, 0,               //
-      0, 0, -2 / (zNear - zFar), 0, //
-      0, 0, 0, 1;                   //
+  // 鉴于zNear > 0 && zFar > 0 && zNear < zFar, 在scale变换时要取abs,
+  // 或者直接zFar - zNear
+  scale << 1 / r, 0, 0, 0,         //
+      0, 1 / t, 0, 0,              //
+      0, 0, 2 / (zFar - zNear), 0, //
+      0, 0, 0, 1;                  //
 
   Eigen::Matrix4f PerspToOrtho;
+  // 注意第四行的参数是-1, 我们可以带入 矩阵A*(x, y, z, 1) = (x, y, z, 1)
+  // z=-n时, 第四行第三列只能是-1
   PerspToOrtho << zNear, 0, 0, 0,           //
       0, zNear, 0, 0,                       //
       0, 0, -(zNear + zFar), -zNear * zFar, //
-      0, 0, 1, 0;                           //
+      0, 0, -1, 0;                          //
 
   Eigen::Matrix4f mirror;
   mirror << 1, 0, 0, 0, //
