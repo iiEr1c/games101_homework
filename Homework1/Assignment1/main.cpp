@@ -61,6 +61,7 @@ Eigen::Matrix4f get_model_matrix(Eigen::Vector3f axis, float rotation_angle) {
   return model;
 }
 
+// 这里的zNear和zFar表示的是距离, 而非坐标
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
                                       float zNear, float zFar) {
   // Students will implement this function
@@ -74,27 +75,34 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
   assert(zNear > 0.0f);
   assert(zFar > 0.0f);
 
-  zNear = -std::abs(zNear);
-  zFar = -std::abs(zFar);
+  // 修复中心对称问题
+  // 见ppt4, 有标注
 
   // assert(zNear > zFar); // assert failed
   // 也就是说, 这里我们这里并不是看向-z
 
   float fovY = eye_fov / 180.0f * MY_PI;
-  float t = std::tan(fovY) * std::abs(zNear);
+  float t = std::tan(fovY) * zNear;
   float r = t * aspect_ratio;
 
   Eigen::Matrix4f trans;
-  trans << 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -(zNear + zFar) / 2, 0, 0, 0, 0, 1;
+  trans << 1, 0, 0, 0,              //
+      0, 1, 0, 0,                   //
+      0, 0, -(zNear + zFar) / 2, 0, //
+      0, 0, 0, 1;                   //
 
   Eigen::Matrix4f scale;
   // 鉴于zNear > 0 && zFar > 0 && zNear < zFar, 在scale变换时要取abs
-  scale << 1 / r, 0, 0, 0, 0, 1 / t, 0, 0, 0, 0, -2 / (zNear - zFar), 0, 0, 0,
-      0, 1;
+  scale << 1 / r, 0, 0, 0,          //
+      0, 1 / t, 0, 0,               //
+      0, 0, -2 / (zNear - zFar), 0, //
+      0, 0, 0, 1;                   //
 
   Eigen::Matrix4f PerspToOrtho;
-  PerspToOrtho << zNear, 0, 0, 0, 0, zNear, 0, 0, 0, 0, zNear + zFar,
-      -zNear * zFar, 0, 0, 1, 0;
+  PerspToOrtho << zNear, 0, 0, 0,          //
+      0, zNear, 0, 0,                      //
+      0, 0, -(zNear + zFar), zNear * zFar, //
+      0, 0, 1, 0;                          //
 
   projection = scale * trans * PerspToOrtho * projection;
   return projection;
