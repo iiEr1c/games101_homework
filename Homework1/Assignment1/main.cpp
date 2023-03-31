@@ -158,6 +158,8 @@ int main(int argc, const char **argv) {
     r.set_view(get_view_matrix(eye_pos));
     r.set_projection(get_projection_matrix(45, 1, 0.1, 50));
 
+    // 这里其实就是生成一个用于显示的数组(实现上将二维数组一维化了)
+    // 在set_pixel中更新了frame_buf数组
     r.draw(pos_id, ind_id, rst::Primitive::Triangle);
 
     cv::Mat image(700, 700, CV_32FC3, r.frame_buffer().data());
