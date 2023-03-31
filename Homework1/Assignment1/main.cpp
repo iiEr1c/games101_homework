@@ -62,6 +62,8 @@ Eigen::Matrix4f get_model_matrix(Eigen::Vector3f axis, float rotation_angle) {
 }
 
 // 这里的zNear和zFar表示的是距离, 而非坐标
+// 参考: https://zhuanlan.zhihu.com/p/509902950
+// 参考: https://zhuanlan.zhihu.com/p/464638515 => OpenGL NDS是左手系(x, y, -z)
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
                                       float zNear, float zFar) {
   // Students will implement this function
@@ -99,12 +101,18 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
       0, 0, 0, 1;                   //
 
   Eigen::Matrix4f PerspToOrtho;
-  PerspToOrtho << zNear, 0, 0, 0,          //
-      0, zNear, 0, 0,                      //
-      0, 0, -(zNear + zFar), zNear * zFar, //
-      0, 0, 1, 0;                          //
+  PerspToOrtho << zNear, 0, 0, 0,           //
+      0, zNear, 0, 0,                       //
+      0, 0, -(zNear + zFar), -zNear * zFar, //
+      0, 0, 1, 0;                           //
 
-  projection = scale * trans * PerspToOrtho * projection;
+  Eigen::Matrix4f mirror;
+  mirror << 1, 0, 0, 0, //
+      0, 1, 0, 0,       //
+      0, 0, -1, 0,      //
+      0, 0, 0, 1;       //
+
+  projection = mirror * scale * trans * PerspToOrtho * projection;
   return projection;
 }
 
