@@ -11,6 +11,7 @@
 
 
 #include <cassert>
+#include <limits>
 
 rst::pos_buf_id rst::rasterizer::load_positions(const std::vector<Eigen::Vector3f> &positions)
 {
@@ -140,7 +141,10 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     // iterate through the pixel and find if the current pixel is inside the triangle
 
     // todo fix:这里存在类型转换
-    float leftBound = INT_MAX, rightBound = INT_MIN, upBound = INT_MAX, buttonBound = INT_MIN;
+    auto leftBound = std::numeric_limits<float>::max();
+    auto rightBound = std::numeric_limits<float>::min();
+    auto upBound = std::numeric_limits<float>::max();
+    auto buttonBound = std::numeric_limits<float>::min();
     for (const auto& k : v) {
         leftBound = std::min(leftBound, k.x());
         upBound = std::min(upBound, k.y());
