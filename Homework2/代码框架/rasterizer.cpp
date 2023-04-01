@@ -43,7 +43,7 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
 }
 
 
-static bool insideTriangle(int x, int y, const Vector3f* _v)
+static bool insideTriangle(float x, float y, const Vector3f* _v)
 {   
     // TODO : Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
     // 叉乘&&结果全大于0或全小于0
@@ -153,8 +153,38 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
         buttonBound = std::max(buttonBound, k.y());
     }
 
+    std::array<float, 5> offset{0.25f, 0.25f, 0.75f, 0.75f, 0.25f};
+    /*
+        (i+0.25, j+0.25)     (i+0.25, j+0.75)
+        (i+0.75, j+0.75)     (i+0.75, j+0.75)
+    */
+    // todo: msaa
     for (float i = leftBound; i <= rightBound; ++i) {
         for (float j = upBound; j <= buttonBound; ++j) {
+            // msaa
+            auto mass_index = get_index(i, j) * 4;
+            float minDepth = -std::numeric_limits<float>::infinity();
+            for (int k = 0; k < 4; ++k) {
+                if(insideTriangle(i + offset[k], j + offset[k+1], t.v)) {
+                    auto[alpha, beta, gamma] = computeBarycentric2D(i + offset[k], j + offset[k+1], t.v);
+                    float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                    float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                    z_interpolated *= w_reciprocal;
+                    assert(z_interpolated < 0.0f);
+                    if (z_interpolated > msaa_depth_buf[mass_index + k]) {
+                        msaa_depth_buf[mass_index + k] = z_interpolated;
+                        msaa_frame_buf[mass_index + k] = t.getColor() / 4;
+                        minDepth = std::max(minDepth, msaa_depth_buf[mass_index + k]);
+                    }
+                }
+            }
+
+            auto color = msaa_frame_buf[mass_index] + msaa_frame_buf[mass_index + 1] + msaa_frame_buf[mass_index + 2] + msaa_frame_buf[mass_index + 3];
+            set_pixel({i, j, 1}, color);
+            depth_buf[get_index(i, j)] = minDepth;
+            
+            
+            /*
             if(insideTriangle(i, j, t.v)) {
                 auto[alpha, beta, gamma] = computeBarycentric2D(i + 0.5, j + 0.5, t.v);
                 float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
@@ -165,10 +195,10 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
                     depth_buf[get_index(i, j)] = z_interpolated;
                 }
             }
+            */
+            
         }
     }
-
-
     // If so, use the following code to get the interpolated z value.
     //auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
     //float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
@@ -232,12 +262,17 @@ void rst::rasterizer::clear(rst::Buffers buff)
     if ((buff & rst::Buffers::Color) == rst::Buffers::Color)
     {
         std::fill(frame_buf.begin(), frame_buf.end(), Eigen::Vector3f{0, 0, 0});
+
+        // set msaa buffer
+        std::fill(msaa_frame_buf.begin(), msaa_frame_buf.end(), Eigen::Vector3f{0, 0, 0});
     }
     if ((buff & rst::Buffers::Depth) == rst::Buffers::Depth)
     {
         //std::fill(depth_buf.begin(), depth_buf.end(), std::numeric_limits<float>::infinity());
         // 初始化为-∞
         std::fill(depth_buf.begin(), depth_buf.end(), -std::numeric_limits<float>::infinity());
+        // init msaa buffer to -infinity
+        std::fill(msaa_depth_buf.begin(), msaa_depth_buf.end(), -std::numeric_limits<float>::infinity());
     }
 }
 
@@ -245,6 +280,10 @@ rst::rasterizer::rasterizer(int w, int h) : width(w), height(h)
 {
     frame_buf.resize(w * h);
     depth_buf.resize(w * h);
+
+    // init msaa buffer
+    msaa_frame_buf.resize(w * h *4);
+    msaa_depth_buf.resize(w * h * 4);
 }
 
 int rst::rasterizer::get_index(int x, int y)
