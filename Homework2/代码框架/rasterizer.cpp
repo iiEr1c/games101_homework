@@ -159,8 +159,10 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
         (i+0.75, j+0.75)     (i+0.75, j+0.75)
     */
     // todo: msaa
-    for (float i = leftBound; i <= rightBound; ++i) {
-        for (float j = upBound; j <= buttonBound; ++j) {
+    int horizontalMin = std::floor(leftBound), horizontalMax = std::ceil(rightBound);
+    int verticalMin = std::floor(upBound), verticalMax = std::ceil(buttonBound);
+    for (float i = horizontalMin; i <= rightBound; ++i) {
+        for (float j = verticalMin; j <= verticalMax; ++j) {
             // msaa
             auto mass_index = get_index(i, j) * 4;
             float minDepth = -std::numeric_limits<float>::infinity();
