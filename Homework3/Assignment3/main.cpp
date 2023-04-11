@@ -175,7 +175,7 @@ Eigen::Vector3f phong_fragment_shader(const fragment_shader_payload &payload) {
 
   Eigen::Vector3f color = payload.color;
   Eigen::Vector3f point = payload.view_pos;
-  Eigen::Vector3f normal = payload.normal.normalized();
+  Eigen::Vector3f normal = payload.normal;
 
   Eigen::Vector3f result_color = {0, 0, 0};
   for (auto &light : lights) {
@@ -201,6 +201,13 @@ Eigen::Vector3f phong_fragment_shader(const fragment_shader_payload &payload) {
 
     // 环境光
     Eigen::Vector3f ambient = ka.cwiseProduct(amb_light_intensity);
+
+    std::cout << diffuse.x() << '\t' << diffuse.y() << '\t' << diffuse.z()
+              << '\n';
+    std::cout << specular.x() << '\t' << specular.y() << '\t' << specular.z()
+              << '\n';
+    std::cout << ambient.x() << '\t' << ambient.y() << '\t' << ambient.z()
+              << '\n';
 
     result_color += (diffuse + specular + ambient);
   }

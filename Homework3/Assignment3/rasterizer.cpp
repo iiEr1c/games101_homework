@@ -285,6 +285,7 @@ static std::tuple<float, float, float> computeBarycentric2D(float x, float y,
 }
 
 // Screen space rasterization
+// 参考 http://games-cn.org/forums/topic/zuoye3-interpolated_shadingcoords/
 void rst::rasterizer::rasterize_triangle(
     const Triangle &t, const std::array<Eigen::Vector3f, 3> &view_pos) {
   // bounding box
@@ -330,19 +331,21 @@ void rst::rasterizer::rasterize_triangle(
           auto color =
               alpha * t.color[0] + beta * t.color[1] + gamma * t.color[2];
           auto normal =
-              alpha * t.normal[0] + beta * t.normal[1] + gamma * t.normal[2];
+              (alpha * t.normal[0] + beta * t.normal[1] + gamma * t.normal[2]).normalized();
           auto texture_coords = alpha * t.tex_coords[0] +
                                 beta * t.tex_coords[1] +
                                 gamma * t.tex_coords[2];
           // projection变换前的坐标, 对于这个三角形的观测点则使用它的重心
-          Eigen::Vector3f pos =
+          Eigen::Vector3f shading_coordinate =
               alpha * view_pos[0] + beta * view_pos[1] + gamma * view_pos[2];
           fragment_shader_payload payload(color, normal, texture_coords,
                                           nullptr);
-          payload.view_pos = pos;
+          payload.view_pos = shading_coordinate;
 
           // payload.view_pos = view_pos;
           auto result_color = fragment_shader(payload);
+          std::cout << "result_color: " << result_color.x() << '\t'
+                    << result_color.y() << '\t' << result_color.z() << '\n';
           set_pixel({i, j}, result_color);
         }
       }
