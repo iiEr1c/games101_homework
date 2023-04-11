@@ -200,6 +200,7 @@ void rst::rasterizer::draw(std::vector<Triangle *> &TriangleList) {
 
     Eigen::Vector4f v[] = {mvp * t->v[0], mvp * t->v[1], mvp * t->v[2]};
     // Homogeneous division
+    // 如果不做这步会怎么样? => coredump
     for (auto &vec : v) {
       assert(vec.z() < 0.0f);
       vec.x() /= vec.w();
@@ -286,6 +287,9 @@ static std::tuple<float, float, float> computeBarycentric2D(float x, float y,
 
 // Screen space rasterization
 // 参考 http://games-cn.org/forums/topic/zuoye3-interpolated_shadingcoords/
+/**
+ * 出现黑像素点的原因貌似是: 只有环境光起了作用, 然后漫反射和高光的贡献为0
+ */
 void rst::rasterizer::rasterize_triangle(
     const Triangle &t, const std::array<Eigen::Vector3f, 3> &view_pos) {
   // bounding box
@@ -316,28 +320,31 @@ void rst::rasterizer::rasterize_triangle(
       if (insideTriangle(x, y, t.v)) {
         // 使用作业2的插值算法可能会出现inf的情况, 这里直接使用ppt中的方法
         auto [alpha, beta, gamma] = computeBarycentric(x, y, t.v);
-        float Z =
-            1.0 / (alpha / t.v[0].w() + beta / t.v[1].w() + gamma / t.v[2].w());
+        float z1 = t.v[0].w(), z2 = t.v[1].w(), z3 = t.v[2].w();
+        float Z = 1.0 / (alpha / z1 + beta / z2 + gamma / z3);
         // z倒数的坐标恰好是按线性的方式进行插值的
-        float zp = alpha * t.v[0].z() / t.v[0].w() +
-                   beta * t.v[1].z() / t.v[1].w() +
-                   gamma * t.v[2].z() / t.v[2].w();
+        float zp = alpha * t.v[0].z() / z1 + beta * t.v[1].z() / z2 +
+                   gamma * t.v[2].z() / z3;
         zp *= Z;
         assert(zp <= 0.0f);
 
         if (zp > depth_buf[get_index(i, j)]) {
           depth_buf[get_index(i, j)] = zp;
           // 颜色插值, 法线插值
-          auto color =
-              alpha * t.color[0] + beta * t.color[1] + gamma * t.color[2];
+          // 插值矫正 https://zhuanlan.zhihu.com/p/509902950
+          auto color = Z * (alpha * t.color[0] / z1 + beta * t.color[1] / z2 +
+                            gamma * t.color[2] / z3);
           auto normal =
-              (alpha * t.normal[0] + beta * t.normal[1] + gamma * t.normal[2]).normalized();
-          auto texture_coords = alpha * t.tex_coords[0] +
-                                beta * t.tex_coords[1] +
-                                gamma * t.tex_coords[2];
+              (Z * (alpha * t.normal[0] / z1 + beta * t.normal[1] / z2 +
+                    gamma * t.normal[2] / z3))
+                  .normalized();
+          auto texture_coords =
+              Z * (alpha * t.tex_coords[0] / z1 + beta * t.tex_coords[1] / z2 +
+                   gamma * t.tex_coords[2] / z3);
           // projection变换前的坐标, 对于这个三角形的观测点则使用它的重心
           Eigen::Vector3f shading_coordinate =
-              alpha * view_pos[0] + beta * view_pos[1] + gamma * view_pos[2];
+              Z * (alpha * view_pos[0] / z1 + beta * view_pos[1] / z2 +
+                   gamma * view_pos[2] / z3);
           fragment_shader_payload payload(color, normal, texture_coords,
                                           nullptr);
           payload.view_pos = shading_coordinate;
@@ -347,6 +354,9 @@ void rst::rasterizer::rasterize_triangle(
           std::cout << "result_color: " << result_color.x() << '\t'
                     << result_color.y() << '\t' << result_color.z() << '\n';
           set_pixel({i, j}, result_color);
+        } else {
+          // 存在深度为-INF的情况
+          std::cout << "zp == -INF" << '\n';
         }
       }
     }
