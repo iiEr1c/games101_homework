@@ -310,14 +310,14 @@ void rst::rasterizer::rasterize_triangle(
   // std::array<float, msaa_size * msaa_size> msaa_buf;
   for (int i = horizontalMin; i <= rightBound; ++i) {
     for (int j = verticalMin; j <= verticalMax; ++j) {
-      if (insideTriangle(i, j, t.v)) {
+      float x = static_cast<float>(i) + 0.5;
+      float y = static_cast<float>(j) + 0.5;
+      if (insideTriangle(x, y, t.v)) {
         // 使用作业2的插值算法可能会出现inf的情况, 这里直接使用ppt中的方法
-        auto [alpha, beta, gamma] = computeBarycentric(
-            static_cast<float>(i) + 0.5, static_cast<float>(j) + 0.5, t.v);
+        auto [alpha, beta, gamma] = computeBarycentric(x, y, t.v);
         float Z =
-            1.0 /
-            (alpha / t.v[0].w() + beta / t.v[1].w() +
-             gamma / t.v[2].w()); // z倒数的坐标恰好是按线性的方式进行插值的
+            1.0 / (alpha / t.v[0].w() + beta / t.v[1].w() + gamma / t.v[2].w());
+        // z倒数的坐标恰好是按线性的方式进行插值的
         float zp = alpha * t.v[0].z() / t.v[0].w() +
                    beta * t.v[1].z() / t.v[1].w() +
                    gamma * t.v[2].z() / t.v[2].w();
@@ -409,7 +409,8 @@ int rst::rasterizer::get_index(int x, int y) {
   return (height - y - 1) * width + x;
 }
 
-// 这里存储的是逻辑上(x, y)点对应的深度, 所以可以不需要修正坐标系, 因为我们是根据深度去给frame_buf赋值的
+// 这里存储的是逻辑上(x, y)点对应的深度, 所以可以不需要修正坐标系,
+// 因为我们是根据深度去给frame_buf赋值的
 int rst::rasterizer::get_msaa_index(int x, int y, int offset) {
   assert(offset < msaa_size * msaa_size);
   constexpr int scale = msaa_size * msaa_size;

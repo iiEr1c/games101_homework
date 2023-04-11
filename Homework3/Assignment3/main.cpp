@@ -175,7 +175,7 @@ Eigen::Vector3f phong_fragment_shader(const fragment_shader_payload &payload) {
 
   Eigen::Vector3f color = payload.color;
   Eigen::Vector3f point = payload.view_pos;
-  Eigen::Vector3f normal = payload.normal;
+  Eigen::Vector3f normal = payload.normal.normalized();
 
   Eigen::Vector3f result_color = {0, 0, 0};
   for (auto &light : lights) {
@@ -183,23 +183,24 @@ Eigen::Vector3f phong_fragment_shader(const fragment_shader_payload &payload) {
     // *diffuse*, and *specular* components are. Then, accumulate that result on
     // the *result_color* object.
 
-    Eigen::Vector3f l = light.position - point;
-    float distance = l.norm();
-    l.normalize();
-    Eigen::Vector3f lightIntensity = light.intensity / (distance * distance);
+    Eigen::Vector3f light_dir = (light.position - point).normalized();
+    float r2 = (light.position - point).dot(light.position - point);
+    Eigen::Vector3f lightIntensity = light.intensity / r2;
     // 注意符号
-    kd.dot(lightIntensity);
-    Eigen::Vector3f diffuse = kd * std::max(0.0f, normal.dot(l));
 
-    Eigen::Vector3f view = eye_pos - point;
-    view.normalize();
-    Eigen::Vector3f h = (view + l) / (view + l).norm();
+    // 漫反射
+    Eigen::Vector3f diffuse = kd.cwiseProduct(lightIntensity);
+    diffuse *= std::max(0.0f, normal.dot(light_dir));
 
-    ks.dot(lightIntensity);
-    Eigen::Vector3f specular = ks * std::pow(std::max(0.0f, normal.dot(h)), 16);
+    Eigen::Vector3f view = (eye_pos - point).normalized();
+    Eigen::Vector3f half_vector = (view + light_dir).normalized();
 
-    ka.dot(amb_light_intensity);
-    auto &ambient = ka;
+    // 高光
+    Eigen::Vector3f specular = ks.cwiseProduct(lightIntensity);
+    specular *= std::pow(std::max(0.0f, normal.dot(half_vector)), p);
+
+    // 环境光
+    Eigen::Vector3f ambient = ka.cwiseProduct(amb_light_intensity);
 
     result_color += (diffuse + specular + ambient);
   }
