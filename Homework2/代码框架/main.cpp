@@ -59,7 +59,7 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
   // 所以等于-1(-zNear + (-)(zFar)) / 2 = (zNear + zFar) / 2
   trans << 1, 0, 0, 0,             //
       0, 1, 0, 0,                  //
-      0, 0, 1, (zNear + zFar) / 2, //
+      0, 0, 1, -(zNear + zFar) / 2, //
       0, 0, 0, 1;                  //
 
   Eigen::Matrix4f scale;
