@@ -87,11 +87,11 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
 
   Eigen::Matrix4f trans;
   // fix, 因为near和far我们看作距离, 所以他们的坐标是-near和-far
-  // 所以等于-1(-zNear + (-)(zFar)) / 2 = (zNear + zFar) / 2
-  trans << 1, 0, 0, 0,             //
-      0, 1, 0, 0,                  //
-      0, 0, 1, (zNear + zFar) / 2, //
-      0, 0, 0, 1;                  //
+  // 所以需要移动-(zNear + zFar) / 2
+  trans << 1, 0, 0, 0,              //
+      0, 1, 0, 0,                   //
+      0, 0, 1, -(zNear + zFar) / 2, //
+      0, 0, 0, 1;                   //
 
   Eigen::Matrix4f scale;
   // 鉴于zNear > 0 && zFar > 0 && zNear < zFar, 在scale变换时要取abs,
