@@ -348,17 +348,12 @@ void rst::rasterizer::rasterize_triangle(
               Z * (alpha * view_pos[0] / z1 + beta * view_pos[1] / z2 +
                    gamma * view_pos[2] / z3);
           fragment_shader_payload payload(color, normal, texture_coords,
-                                          nullptr);
+                                          texture ? &*texture : nullptr);
           payload.view_pos = shading_coordinate;
 
           // payload.view_pos = view_pos;
           auto result_color = fragment_shader(payload);
-          std::cout << "result_color: " << result_color.x() << '\t'
-                    << result_color.y() << '\t' << result_color.z() << '\n';
           set_pixel({i, j}, result_color);
-        } else {
-          // 存在深度为-INF的情况
-          std::cout << "zp == -INF" << '\n';
         }
       }
     }

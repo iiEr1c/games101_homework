@@ -146,6 +146,10 @@ texture_fragment_shader(const fragment_shader_payload &payload) {
   if (payload.texture) {
     // TODO: Get the texture value at the texture coordinates of the current
     // fragment
+    float u = payload.tex_coords[0], v = payload.tex_coords[1];
+    return_color = payload.texture->getColor(u, v);
+    std::cout << "return_color:" << return_color.x() << '\t' << return_color.y() << '\t'
+              << return_color.z() << '\n';
   }
   Eigen::Vector3f texture_color;
   texture_color << return_color.x(), return_color.y(), return_color.z();
@@ -163,6 +167,7 @@ texture_fragment_shader(const fragment_shader_payload &payload) {
 
   float p = 150;
 
+  // 而不是直接使用payload中的color
   Eigen::Vector3f color = texture_color;
   Eigen::Vector3f point = payload.view_pos;
   Eigen::Vector3f normal = payload.normal;
@@ -173,6 +178,36 @@ texture_fragment_shader(const fragment_shader_payload &payload) {
     // TODO: For each light source in the code, calculate what the *ambient*,
     // *diffuse*, and *specular* components are. Then, accumulate that result on
     // the *result_color* object.
+
+    // 模型是一样的, 只是输入不一样
+
+    Eigen::Vector3f light_dir = (light.position - point).normalized();
+    float r2 = (light.position - point).dot(light.position - point);
+    Eigen::Vector3f lightIntensity = light.intensity / r2;
+    // 注意符号
+
+    // 漫反射
+    Eigen::Vector3f diffuse = kd.cwiseProduct(lightIntensity);
+    diffuse *= std::max(0.0f, normal.dot(light_dir));
+
+    Eigen::Vector3f view = (eye_pos - point).normalized();
+    Eigen::Vector3f half_vector = (view + light_dir).normalized();
+
+    // 高光
+    Eigen::Vector3f specular = ks.cwiseProduct(lightIntensity);
+    specular *= std::pow(std::max(0.0f, normal.dot(half_vector)), p);
+
+    // 环境光
+    Eigen::Vector3f ambient = ka.cwiseProduct(amb_light_intensity);
+
+    // std::cout << diffuse.x() << '\t' << diffuse.y() << '\t' << diffuse.z()
+    //           << '\n';
+    // std::cout << specular.x() << '\t' << specular.y() << '\t' << specular.z()
+    //           << '\n';
+    // std::cout << ambient.x() << '\t' << ambient.y() << '\t' << ambient.z()
+    //           << '\n';
+
+    result_color += (diffuse + specular + ambient);
   }
 
   return result_color * 255.f;
@@ -324,10 +359,12 @@ int main(int argc, const char **argv) {
 
   std::string filename = "output.png";
   objl::Loader Loader;
-  std::string obj_path = "../models/spot/";
+  //std::string obj_path = "../models/spot/";
+  // 避免bug使用绝对路径
+  std::string obj_path = "/home/er1c/code/games101_homework/Homework3/Assignment3/models/spot/";
 
   // Load .obj File
-  bool loadout = Loader.LoadFile("../models/spot/spot_triangulated_good.obj");
+  bool loadout = Loader.LoadFile(obj_path + "spot_triangulated_good.obj");
   for (auto mesh : Loader.LoadedMeshes) {
     for (int i = 0; i < mesh.Vertices.size(); i += 3) {
       Triangle *t = new Triangle();
