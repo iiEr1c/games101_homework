@@ -98,7 +98,7 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
   // 或者直接zFar - zNear
   scale << 1 / r, 0, 0, 0,         //
       0, 1 / t, 0, 0,              //
-      0, 0, 2 / (zFar - zNear), 0, //
+      0, 0, 2 / (zNear - zFar), 0, //
       0, 0, 0, 1;                  //
 
   Eigen::Matrix4f PerspToOrtho;
