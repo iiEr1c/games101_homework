@@ -38,6 +38,7 @@ Eigen::Matrix4f get_model_matrix(float angle) {
 // 这里的zNear和zFar表示的是距离, 而非坐标
 // 参考: https://zhuanlan.zhihu.com/p/509902950
 // 参考: https://zhuanlan.zhihu.com/p/464638515 => OpenGL NDS是左手系(x, y, -z)
+// 引用3D图形学书上的公式, games101的推导在正投影中z没有取反
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
                                       float zNear, float zFar) {
   // Students will implement this function
@@ -60,21 +61,20 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
   float fovY = eye_fov / 180.0f * MY_PI;
   float t = std::tan(fovY) * zNear;
   float r = t * aspect_ratio;
-
+  /*
   Eigen::Matrix4f trans;
   // fix, 因为near和far我们看作距离, 所以他们的坐标是-near和-far
   // 所以等于-1(-zNear + (-)(zFar)) / 2 = (zNear + zFar) / 2
-  trans << 1, 0, 0, 0,             //
-      0, 1, 0, 0,                  //
-      0, 0, 1, (zNear + zFar) / 2, //
-      0, 0, 0, 1;                  //
+  trans << 1, 0, 0, 0,              //
+      0, 1, 0, 0,                   //
+      0, 0, 1, -(zNear + zFar) / 2, //
+      0, 0, 0, 1;                   //
 
   Eigen::Matrix4f scale;
-  // 鉴于zNear > 0 && zFar > 0 && zNear < zFar, 在scale变换时要取abs,
-  // 或者直接zFar - zNear
+  // 注意这里是zNear - zFar
   scale << 1 / r, 0, 0, 0,         //
       0, 1 / t, 0, 0,              //
-      0, 0, 2 / (zFar - zNear), 0, //
+      0, 0, 2 / (zNear - zFar), 0, //
       0, 0, 0, 1;                  //
 
   Eigen::Matrix4f PerspToOrtho;
@@ -92,7 +92,27 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
       0, 0, 0, 1;       //
 
   projection = mirror * scale * trans * PerspToOrtho * projection;
-  return projection;
+  */
+
+  Eigen::Matrix4f PerspToOrtho;
+  Eigen::Matrix4f Ortho;
+  PerspToOrtho << zNear / r, 0, 0, 0, //
+      0, zNear / t, 0, 0,             //
+      0, 0, -(zFar + zNear) / (zFar - zNear),
+      -2 * zNear * zFar / (zFar - zNear),                         //
+      0, 0, -1, 0;                                                //
+  Ortho << 1, 0, 0, 0,                                            //
+      0, 1, 0, 0,                                                 //
+      0, 0, -2 / (zFar - zNear), (zFar + zNear) / (zFar - zNear), //
+      0, 0, 0, 1;
+
+  Eigen::Matrix4f mirror;
+  mirror << 1, 0, 0, 0, //
+      0, 1, 0, 0,       //
+      0, 0, -1, 0,      //
+      0, 0, 0, 1;       //
+
+  return mirror * Ortho * PerspToOrtho;
 }
 
 Eigen::Vector3f vertex_shader(const vertex_shader_payload &payload) {

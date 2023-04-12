@@ -202,7 +202,6 @@ void rst::rasterizer::draw(std::vector<Triangle *> &TriangleList) {
     // Homogeneous division
     // 如果不做这步会怎么样? => coredump
     for (auto &vec : v) {
-      assert(vec.z() < 0.0f);
       vec.x() /= vec.w();
       vec.y() /= vec.w();
       vec.z() /= vec.w();
@@ -321,14 +320,17 @@ void rst::rasterizer::rasterize_triangle(
         // 使用作业2的插值算法可能会出现inf的情况, 这里直接使用ppt中的方法
         auto [alpha, beta, gamma] = computeBarycentric(x, y, t.v);
         float z1 = t.v[0].w(), z2 = t.v[1].w(), z3 = t.v[2].w();
+        assert(z1 >= 0.0f);
+        assert(z2 >= 0.0f);
+        assert(z3 >= 0.0f);
         float Z = 1.0 / (alpha / z1 + beta / z2 + gamma / z3);
         // z倒数的坐标恰好是按线性的方式进行插值的
         float zp = alpha * t.v[0].z() / z1 + beta * t.v[1].z() / z2 +
                    gamma * t.v[2].z() / z3;
         zp *= Z;
-        assert(zp <= 0.0f);
+        assert(zp >= 0.0f);
 
-        if (zp > depth_buf[get_index(i, j)]) {
+        if (zp < depth_buf[get_index(i, j)]) {
           depth_buf[get_index(i, j)] = zp;
           // 颜色插值, 法线插值
           // 插值矫正 https://zhuanlan.zhihu.com/p/509902950
@@ -400,9 +402,8 @@ void rst::rasterizer::clear(rst::Buffers buff) {
     std::fill(frame_buf.begin(), frame_buf.end(), Eigen::Vector3f{0, 0, 0});
   }
   if ((buff & rst::Buffers::Depth) == rst::Buffers::Depth) {
-    // 需要将深度修改为-∞
     std::fill(depth_buf.begin(), depth_buf.end(),
-              -std::numeric_limits<float>::infinity());
+              std::numeric_limits<float>::infinity());
   }
 }
 
