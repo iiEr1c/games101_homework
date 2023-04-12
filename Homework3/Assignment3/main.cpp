@@ -103,7 +103,7 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
       0, 0, -1, 0;                                                //
   Ortho << 1, 0, 0, 0,                                            //
       0, 1, 0, 0,                                                 //
-      0, 0, -2 / (zFar - zNear), (zFar + zNear) / (zFar - zNear), //
+      0, 0, -2 / (zFar - zNear), -(zFar + zNear) / (zFar - zNear), //
       0, 0, 0, 1;
 
   Eigen::Matrix4f mirror;
