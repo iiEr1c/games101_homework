@@ -195,19 +195,25 @@ void rst::rasterizer::draw(std::vector<Triangle *> &TriangleList) {
 
     std::array<Eigen::Vector3f, 3> viewspace_pos;
 
+    // 相机空间顶点的坐标
     std::transform(mm.begin(), mm.end(), viewspace_pos.begin(),
                    [](auto &v) { return v.template head<3>(); });
 
     Eigen::Vector4f v[] = {mvp * t->v[0], mvp * t->v[1], mvp * t->v[2]};
     // Homogeneous division
-    // 如果不做这步会怎么样? => coredump
+    // 透视除法 -> 视锥体变换到一个立方体中. 此时的坐标在OpenGL中叫NDC
     for (auto &vec : v) {
       vec.x() /= vec.w();
       vec.y() /= vec.w();
       vec.z() /= vec.w();
     }
 
+    // 具体见 法线变换.jpg
     Eigen::Matrix4f inv_trans = (view * model).inverse().transpose();
+    // Eigen::Matrix4f inv_trans = view * model;
+    // std::cout << "view.norm: " << view.norm() << "\tmodel.norm(): " <<
+    // model.norm() << '\n';
+    // https://blog.csdn.net/Q_pril/article/details/123598746
     Eigen::Vector4f n[] = {inv_trans * to_vec4(t->normal[0], 0.0f),
                            inv_trans * to_vec4(t->normal[1], 0.0f),
                            inv_trans * to_vec4(t->normal[2], 0.0f)};
@@ -229,8 +235,12 @@ void rst::rasterizer::draw(std::vector<Triangle *> &TriangleList) {
       // view space normal
       /* mv变换的结果也保存下来, 因为投影矩阵会影响插值的结果,
        * 所以使用投影矩阵之前的结果进行插值?,
+       * 其实这里就是计算 相机空间 下顶点的法线
        * 但是为什么要求它的逆矩阵和它的转置呢?!!todo!!*/
       newtri.setNormal(i, n[i].head<3>());
+      // assert(newtri.normal[0].isIdentity() == false);
+      // assert(newtri.normal[1].isIdentity() == false);
+      // assert(newtri.normal[2].isIdentity() == false);
     }
 
     /*设置三角形三个顶点的颜色*/
@@ -334,6 +344,7 @@ void rst::rasterizer::rasterize_triangle(
           depth_buf[get_index(i, j)] = zp;
           // 颜色插值, 法线插值
           // 插值矫正 https://zhuanlan.zhihu.com/p/509902950
+          // 见虎书证明
           auto color = Z * (alpha * t.color[0] / z1 + beta * t.color[1] / z2 +
                             gamma * t.color[2] / z3);
           auto normal =

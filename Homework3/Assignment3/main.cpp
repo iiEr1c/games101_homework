@@ -419,6 +419,7 @@ int main(int argc, const char **argv) {
   Eigen::Vector3f eye_pos = {0, 0, 10};
 
   r.set_vertex_shader(vertex_shader);
+  // 其实就是一个shader function.
   r.set_fragment_shader(active_shader);
 
   int key = 0;
