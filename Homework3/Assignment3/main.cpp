@@ -147,7 +147,8 @@ texture_fragment_shader(const fragment_shader_payload &payload) {
     // TODO: Get the texture value at the texture coordinates of the current
     // fragment
     float u = payload.tex_coords[0], v = payload.tex_coords[1];
-    return_color = payload.texture->getColor(u, v);
+    //return_color = payload.texture->getColor(u, v);
+    return_color = payload.texture->getBilinearColor(u, v);
     std::cout << "return_color:" << return_color.x() << '\t' << return_color.y() << '\t'
               << return_color.z() << '\n';
   }
