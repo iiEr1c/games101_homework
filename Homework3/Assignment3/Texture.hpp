@@ -32,6 +32,8 @@ public:
         if (v < 0) v = 0;
         if (v > 1) v = 1;
 
+        // 注意这里的uv坐标是基于左下角的
+        // 而屏幕显示起点是左上角
         auto u_img = u * width;
         auto v_img = (1 - v) * height;
         auto color = image_data.at<cv::Vec3b>(v_img, u_img);
