@@ -8,6 +8,7 @@ inline float deg2rad(const float &deg)
 { return deg * M_PI/180.0; }
 
 // Compute reflection direction
+// 见reflection.png
 Vector3f reflect(const Vector3f &I, const Vector3f &N)
 {
     return I - 2 * dotProduct(I, N) * N;
@@ -26,6 +27,8 @@ Vector3f reflect(const Vector3f &I, const Vector3f &N)
 //
 // If the ray is inside, you need to invert the refractive indices and negate the normal N
 // [/comment]
+// https://zhuanlan.zhihu.com/p/480405520
+// 反射/入射=ior
 Vector3f refract(const Vector3f &I, const Vector3f &N, const float &ior)
 {
     float cosi = clamp(-1, 1, dotProduct(I, N));
@@ -46,6 +49,8 @@ Vector3f refract(const Vector3f &I, const Vector3f &N, const float &ior)
 //
 // \param ior is the material refractive index
 // [/comment]
+// https://zhuanlan.zhihu.com/p/480405520
+// 计算反射的贡献
 float fresnel(const Vector3f &I, const Vector3f &N, const float &ior)
 {
     float cosi = clamp(-1, 1, dotProduct(I, N));
@@ -132,14 +137,22 @@ Vector3f castRay(
     Vector3f hitColor = scene.backgroundColor;
     if (auto payload = trace(orig, dir, scene.get_objects()); payload)
     {
+        // 光线与物体的交点
         Vector3f hitPoint = orig + dir * payload->tNear;
+        
         Vector3f N; // normal
         Vector2f st; // st coordinates
         payload->hit_obj->getSurfaceProperties(hitPoint, dir, payload->index, payload->uv, N, st);
+        // 为什么要±N * scene.epsilon?
+        // 因为 ray = O + tDir, 然后我们遍历所有的mesh, 那么对于之前反射/折射的面, 可以求出t=0, 为了避免这个问题所以加了bias
+        // https://blog.csdn.net/weixin_44491423/article/details/127424179
+        // 因为玻璃可以穿透, 所以这里对于 dotProduct(reflectionDirection, N) < 0 的情况不能丢弃
         switch (payload->hit_obj->materialType) {
             case REFLECTION_AND_REFRACTION:
             {
+                // 反射
                 Vector3f reflectionDirection = normalize(reflect(dir, N));
+                // 折射
                 Vector3f refractionDirection = normalize(refract(dir, N, payload->hit_obj->ior));
                 Vector3f reflectionRayOrig = (dotProduct(reflectionDirection, N) < 0) ?
                                              hitPoint - N * scene.epsilon :
@@ -149,12 +162,14 @@ Vector3f castRay(
                                              hitPoint + N * scene.epsilon;
                 Vector3f reflectionColor = castRay(reflectionRayOrig, reflectionDirection, scene, depth + 1);
                 Vector3f refractionColor = castRay(refractionRayOrig, refractionDirection, scene, depth + 1);
+                // 折射*折射权重 + 反射*反射权重
                 float kr = fresnel(dir, N, payload->hit_obj->ior);
                 hitColor = reflectionColor * kr + refractionColor * (1 - kr);
                 break;
             }
             case REFLECTION:
             {
+                // 计算反射权重
                 float kr = fresnel(dir, N, payload->hit_obj->ior);
                 Vector3f reflectionDirection = reflect(dir, N);
                 Vector3f reflectionRayOrig = (dotProduct(reflectionDirection, N) < 0) ?
@@ -184,6 +199,8 @@ Vector3f castRay(
                     lightDir = normalize(lightDir);
                     float LdotN = std::max(0.f, dotProduct(lightDir, N));
                     // is the point in shadow, and is the nearest occluding object closer to the object than the light itself?
+                    // 这里的思路也很简单, 就是从光源打出一条光线, 找到距离光源最近的点D, 如果当前点距离光源的距离大于D, 那么认为当前点是shadow
+                    // 但如果D A B这样的形势, 当前点是B, 那么其实B不是shadow.
                     auto shadow_res = trace(shadowPointOrig, lightDir, scene.get_objects());
                     bool inShadow = shadow_res && (shadow_res->tNear * shadow_res->tNear < lightDistance2);
 
@@ -247,7 +264,7 @@ void Renderer::Render(const Scene& scene)
             y = y * scale;
 
             // 这里 suppose |zNear| = 1
-            Vector3f dir = Vector3f(x, y, -1); // Don't forget to normalize this direction!
+            Vector3f dir = normalize(Vector3f(x, y, -1)); // Don't forget to normalize this direction!
             framebuffer[m++] = castRay(eye_pos, dir, scene, 0);
         }
         UpdateProgress(j / (float)scene.height);

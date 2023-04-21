@@ -74,6 +74,7 @@ public:
         return intersect;
     }
 
+    // 计算三角形的法向量以及对顶点属性进行插值.
     void getSurfaceProperties(const Vector3f&, const Vector3f&, const uint32_t& index, const Vector2f& uv, Vector3f& N,
                               Vector2f& st) const override
     {
