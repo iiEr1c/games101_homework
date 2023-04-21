@@ -21,7 +21,7 @@ BVHAccel::BVHAccel(std::vector<Object*> p, int maxPrimsInNode,
     int secs = (int)diff - (hrs * 3600) - (mins * 60);
 
     printf(
-        "\rBVH Generation complete: \nTime Taken: %i hrs, %i mins, %i secs\n\n",
+        "BVH Generation complete: \nTime Taken: %i hrs, %i mins, %i secs\n\n",
         hrs, mins, secs);
 }
 
@@ -31,7 +31,7 @@ BVHAccel::BVHAccel(std::vector<Object*> p, int maxPrimsInNode,
 // Union(box, 向量中点) => 取box.min的最小, box.max的最大
 BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
 {
-    BVHBuildNode* node = new BVHBuildNode();
+    BVHBuildNode *node = new BVHBuildNode();
 
     // Compute bounds of all primitives in BVH node
     Bounds3 bounds;

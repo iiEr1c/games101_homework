@@ -81,9 +81,11 @@ public:
         bool loaded = loader.LoadFile(filename);
         assert(loaded == true);
 
+        // 因为只加载了一个模型
         assert(loader.LoadedMeshes.size() == 1);
         auto mesh = loader.LoadedMeshes[0];
 
+        // 这里的min_vert和max_vert用于给出框住该object的最小的bound box
         Vector3f min_vert = Vector3f{std::numeric_limits<float>::infinity(),
                                      std::numeric_limits<float>::infinity(),
                                      std::numeric_limits<float>::infinity()};
@@ -117,13 +119,13 @@ public:
             triangles.emplace_back(face_vertices[0], face_vertices[1],
                                    face_vertices[2], new_mat);
         }
-
+        // 该模型的bound box
         bounding_box = Bounds3(min_vert, max_vert);
 
         std::vector<Object*> ptrs;
         for (auto& tri : triangles)
             ptrs.push_back(&tri);
-
+        // 对模型中的所有三角形进行BVH操作
         bvh = new BVHAccel(ptrs);
     }
 

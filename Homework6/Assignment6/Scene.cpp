@@ -6,7 +6,8 @@
 
 
 void Scene::buildBVH() {
-    printf(" - Generating BVH...\n\n");
+    printf(" - [start] Generating BVH...\n\n");
+    // 其实可以对各个object进行BVH, std::vector<BVHAccel *>即可
     this->bvh = new BVHAccel(objects, 1, BVHAccel::SplitMethod::NAIVE);
 }
 
