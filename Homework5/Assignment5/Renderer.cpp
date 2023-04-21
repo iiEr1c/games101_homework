@@ -255,6 +255,12 @@ void Renderer::Render(const Scene& scene)
             // [0.5, 0.5] * [width - 0.5, height - 0.5] => [0, 0] * [1, 1]
             x = (static_cast<float>(i) + 0.5) / static_cast<float>(scene.width - 1);
             y = (static_cast<float>(j) + 0.5) / static_cast<float>(scene.height - 1);
+
+            // 如果不减1, 那么会出现蓝点, 但是在作业6里头, 会出现中间十字缝隙.
+            // x = (static_cast<float>(i) + 0.5) / static_cast<float>(scene.width);
+            // y = (static_cast<float>(j) + 0.5) / static_cast<float>(scene.height);
+            
+
             // [0, 0] * [1, 1] -> [-1, -1] * [1, 1] and y = 1 - y(因为屏幕是从左上角开始)
             x = 2 * x - 1;
             y = 1 - 2 * y;
