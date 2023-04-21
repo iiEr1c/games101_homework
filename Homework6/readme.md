@@ -12,3 +12,15 @@
 ## BVH构建
 
 参考segment tree即可.
+
+## SAH
+为了解决原来左右划分后两个bounding box重叠的体积.
+
+
+[a1, a2, ..., an-1, an]
+任意i, 1-i找到的bounding box A和 i+1到n的bounding box B.
+求A的area areaA和B的area areaB, 对数量进行加权. areaA * i / (areaA + areaB), areaB * (n - i) / (areaA + areaB)
+
+
+## reference
++ [SAH](https://zhuanlan.zhihu.com/p/50720158)
