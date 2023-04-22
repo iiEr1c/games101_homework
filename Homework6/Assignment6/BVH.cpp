@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <cassert>
+#include <span>
+
 #include "BVH.hpp"
 
 BVHAccel::BVHAccel(std::vector<Object*> p, int maxPrimsInNode,
@@ -87,6 +89,40 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
         auto beginning = objects.begin();
         auto middling = objects.begin() + (objects.size() / 2);
         auto ending = objects.end();
+
+        if(splitMethod == SplitMethod::SAH) {
+            // 如果只有一个桶, 那么计算量会比较大, 这样可以减少遍历所有的情况
+            constexpr size_t bucketSize = 16;
+            auto size = objects.size();
+            auto minTime = std::numeric_limits<double>::max();
+            size_t proper_index = 0;
+            for (size_t i = 0; i < bucketSize; ++i) {
+              auto distance = size / bucketSize * i + 1;
+              auto left = std::span(objects.begin(), objects.begin() + distance);
+              auto right = std::span(objects.begin() + distance, objects.end());
+
+              Bounds3 leftBounds, rightBounds;
+              for(auto&& obj : left) {
+                leftBounds = Union(leftBounds, obj->getBounds().Centroid());
+              }
+              for(auto&& obj : right) {
+                rightBounds = Union(rightBounds, obj->getBounds().Centroid());
+              }
+
+              auto leftArea = leftBounds.SurfaceArea();
+              auto rightArea = rightBounds.SurfaceArea();
+              auto time =
+                  leftArea / (leftArea + rightArea) * left.size() +
+                  rightArea / (leftArea + rightArea) * right.size();
+              if (time < minTime) {
+                minTime = time;
+                proper_index = i;
+              }
+            }
+
+            middling = objects.begin() + size / bucketSize * proper_index + 1;
+
+        }
 
         auto leftshapes = std::vector<Object*>(beginning, middling);
         auto rightshapes = std::vector<Object*>(middling, ending);
