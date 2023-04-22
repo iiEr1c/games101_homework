@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "*.ipp": "cpp",
+        "chrono": "cpp",
+        "compare": "cpp",
+        "limits": "cpp",
+        "memory": "cpp",
+        "mutex": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp"
+    }
+}
